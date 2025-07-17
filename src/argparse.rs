@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use std::env::Args;
 
 pub enum Type {
@@ -22,14 +23,16 @@ pub fn parse_args(mut args: Args) -> Option<Command> {
     let prog_name = args
         .next()
         .unwrap_or("stego".to_string());
-    
-    if let Some(first) = args.next().clone() {
-        if first == "--help" || first == "-h" {
+
+    let mut args = args.peekable();
+
+    if let Some(first) = args.peek() {
+        if *first == "--help" || *first == "-h" {
             show_help(&prog_name);
             return None;
         }
 
-        if first == "--version" || first == "-v" {
+        if *first == "--version" || *first == "-v" {
             show_version();
             return None;
         }
@@ -95,16 +98,21 @@ pub fn parse_args(mut args: Args) -> Option<Command> {
             },
 
             unknown => {
-                println!("[!] Error: Invalid command {}", unknown);
+                println!("[!] Error: Invalid command '{}'", unknown);
                 return None;
             }
         }
     }
     
+    if let None = output {
+        println!("[!] Please enter a output file.\nTry '{} --help' for more information.", prog_name);
+        return None;
+    }
+
     Some(Command {
-        filetype: file_type?,
-        action: action?,
-        output: output?,
+        filetype: file_type.unwrap(),
+        action: action.unwrap(),
+        output: output.unwrap(),
         header: header
     })
 }

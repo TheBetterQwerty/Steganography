@@ -5,13 +5,23 @@ mod image;
 
 fn main() {
     let arguments = match argparse::parse_args(args()) {
-        Some(arguments) => arguments,
-        None => return
+        Some(arguments) => {
+            arguments
+        },
+        None => {
+            return;
+        }
     };
     
     match arguments.filetype {
         argparse::Type::Image(_) => {
-            image::image_parse(arguments);
+            match image::image_parse(arguments) {
+                Ok(()) => {},
+                Err(x) => {
+                    println!("[!] Error: {x}");
+                    return;
+                }
+            }
         },
 
         _ => {} // make later
