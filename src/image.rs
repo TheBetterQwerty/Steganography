@@ -3,12 +3,12 @@ use image::RgbImage;
 use image::ImageReader;
 use image::ImageBuffer;
 use std::result::Result;
-use crate::argparse;
+use crate::{argparse, encrypt};
 
-pub fn image_parse(command: argparse::Command) -> Result<(), String> {
+pub fn image_embedd(command: argparse::Command) -> Result<(), String> {
     let path = match command.filetype {
         argparse::Type::Image(path) => path,
-        _ => return Err("[!] Error: path doesn't exist".to_string())
+        _ => return Err("Path doesn't exist".to_string())
     };
     
     let img = ImageReader::open(path)
@@ -23,8 +23,11 @@ pub fn image_parse(command: argparse::Command) -> Result<(), String> {
         .pixels()
         .map(|p| p.0)
         .collect();
+    
+    let key = encrypt::hash(input("[+] Enter key: ").as_bytes());
+    let nonce = encrypt::rand_bytes();
 
-    let data = input("[+] Enter data : ").into_bytes();
+    let data = input("[+] Enter data: ").into_bytes();
     let header = command.header.as_bytes();
     let end_header = header
         .iter()
@@ -32,38 +35,43 @@ pub fn image_parse(command: argparse::Command) -> Result<(), String> {
         .cloned()
         .collect::<Vec<u8>>();
     
-    
-    /*
-    * f(x) -> enc
-    * g(x) -> hash
-    * g(header) + f(data) + g(header[::-1])
-    *
-    * uproot:
-    *   f(data)
-    *   find in data
-    * */
     let mut final_data: Vec<u8> = Vec::new();
-    final_data.extend_from_slice(&data);
-    final_data.extend_from_slice(header);
-    final_data.extend_from_slice(&end_header);
-    
+    {
+        final_data.extend_from_slice(header);
+        final_data.extend_from_slice(&data);
+        final_data.extend_from_slice(&end_header);
+    }
+
+    let final_data = match encrypt::data_enc(&key, &final_data, &nonce) {
+        Ok(data) => data,
+        Err(data) => return Err(data)
+    };
+
     for i in 0..final_data.len() {
         if i >= pixels.len() {
-            continue;
+            return Err("Image too small to embedd message".to_string());
         }
         pixels[i][0] = final_data[i];
     }
     
-    let flat_pixels: Vec<u8> = pixels.iter().flat_map(|rgb| rgb).copied().collect();
+    let flat_pixels: Vec<u8> = pixels
+        .iter()
+        .flat_map(|rgb| rgb)
+        .copied()
+        .collect();
 
     let output_img: RgbImage = ImageBuffer::from_raw(width, height, flat_pixels)
-        .expect("[!] Error: Invalid image buffer size");
+        .expect("Invalid image buffer size");
 
-    output_img.save(command.output).expect("[!] Error: Failed to save image");
+    match output_img.save(&command.output) {
+        Ok(_) => println!("[+] Image was created and saved at {}", command.output),
+        Err(err) => return Err(err.to_string())
+    }
+
     Ok(())
 }
 
-fn input(buffer: &'static str) -> String {
+fn input(buffer: &str) -> String {
     let mut input = String::new();
 
     print!("{buffer}");

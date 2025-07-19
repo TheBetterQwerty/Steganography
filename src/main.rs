@@ -2,6 +2,7 @@ use std::env::args;
 
 mod argparse;
 mod image;
+mod encrypt;
 
 fn main() {
     let arguments = match argparse::parse_args(args()) {
@@ -15,7 +16,7 @@ fn main() {
     
     match arguments.filetype {
         argparse::Type::Image(_) => {
-            match image::image_parse(arguments) {
+            match image::image_embedd(arguments) {
                 Ok(()) => {},
                 Err(x) => {
                     println!("[!] Error: {x}");
