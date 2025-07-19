@@ -16,12 +16,26 @@ fn main() {
     
     match arguments.filetype {
         argparse::Type::Image(_) => {
-            match image::image_embedd(arguments) {
-                Ok(()) => {},
-                Err(x) => {
-                    println!("[!] Error: {x}");
-                    return;
-                }
+            match arguments.action {
+                argparse::ActionType::Embedd => {
+                    match image::image_embedd(arguments) {
+                        Ok(()) => {},
+                        Err(x) => {
+                            println!("[!] Error: {x}");
+                            return;
+                        }
+                    }
+                },
+
+                argparse::ActionType::Uproot => {
+                    match image::image_uproot(arguments) {
+                        Ok(x) => println!("[MESSAGE] {x}"),
+                        Err(x) => {
+                            println!("[!] Error: {x}");
+                            return;
+                        }
+                    }
+                },
             }
         },
 
