@@ -29,7 +29,7 @@ fn main() {
 
                 argparse::ActionType::Uproot => {
                     match image::image_uproot(arguments) {
-                        Ok(x) => println!("[MESSAGE] {x}"),
+                        Ok(x) => println!("[#] Successfully extracted message\n> {}", x),
                         Err(x) => {
                             println!("[!] Error: {x}");
                             return;

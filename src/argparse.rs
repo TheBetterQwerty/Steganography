@@ -15,7 +15,7 @@ pub enum ActionType {
 pub struct Command {
     pub filetype: Type,
     pub action: ActionType,
-    pub output: String,
+    pub output: Option<String>,
     pub header: String
 }
 
@@ -104,15 +104,17 @@ pub fn parse_args(mut args: Args) -> Option<Command> {
         }
     }
     
-    if let None = output {
-        println!("[!] Please enter a output file.\nTry '{} --help' for more information.", prog_name);
-        return None;
+    if let Some(ActionType::Embedd) = action {
+        if let None = output {
+            println!("[!] Please enter a output file.\nTry '{} --help' for more information.", prog_name);
+            return None;
+        }
     }
 
     Some(Command {
         filetype: file_type.unwrap(),
         action: action.unwrap(),
-        output: output.unwrap(),
+        output: output,
         header: header
     })
 }
