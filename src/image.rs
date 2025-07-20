@@ -35,17 +35,16 @@ pub fn image_embedd(command: argparse::Command) -> Result<(), String> {
     let end_header: Vec<u8> = header.iter().rev().cloned().collect();
     
     let mut final_data: Vec<u8> = Vec::new();
-    {
-        final_data.extend_from_slice(&header);
-        final_data.extend_from_slice(&nonce);
-        final_data.extend_from_slice(&data);
-        final_data.extend_from_slice(&end_header);
+    final_data.extend_from_slice(&header);
+    final_data.extend_from_slice(&nonce);
+    final_data.extend_from_slice(&data);
+    final_data.extend_from_slice(&end_header);
+
+    if final_data.len() > pixels.len() {
+        return Err("Picture bytes to small".to_string());
     }
 
     for i in 0..final_data.len() {
-        if i >= pixels.len() {
-            return Err("Image too small to embedd message".to_string());
-        }
         pixels[i][0] = final_data[i];
     }
     
@@ -54,7 +53,7 @@ pub fn image_embedd(command: argparse::Command) -> Result<(), String> {
         .flat_map(|rgb| rgb)
         .copied()
         .collect();
-
+    
     let output_img: RgbImage = ImageBuffer::from_raw(width, height, flat_pixels)
         .expect("Invalid image buffer size");
 
@@ -81,8 +80,8 @@ pub fn image_uproot(command: argparse::Command) -> Result<String, String> {
     let pixels: Vec<u8> = img
         .pixels()
         .map(|p| {
-            let rgb = p.0; 
-            rgb[0]
+            let a = p.0;
+            a[0]
         }).collect();
     
     let key = encrypt::hash(input("[+] Enter the key: ").as_bytes());
@@ -103,9 +102,13 @@ pub fn image_uproot(command: argparse::Command) -> Result<String, String> {
 
     let end_header_idx = match find_subarray(&pixels, &end_header) {
         Some(idx) => idx,
-        None => return Err("Header doesnt exists in the image".to_string())
+        None => return Err("End Header doesnt exists in the image".to_string())
     };
     
+    if end_header_idx <= header_idx + 32 + 12 {
+        return Err("Invalid data range in image".to_string());
+    }
+
     let nonce = &pixels[(header_idx + 32) .. (header_idx + 32 + 12)];
     let data = &pixels[(header_idx + 32 + 12) .. (end_header_idx)];
 
